@@ -1,6 +1,14 @@
-Google Mirror API's Quickstart for Python
-========================
+Google Calendar interface for Google Glass
 
-The documentation for this quickstart is maintained on developers.google.com.
-Please see here for more information:
-https://developers.google.com/glass/quickstart/python
+- accesses your primary calendar only
+- shows your upcoming (5) events on a card that can be pinned
+- click the bundle to show details on the next 5 events
+
+
+
+to do:
+
+format cards
+	add colors for events based on calendar color settings
+	format timestamps
+	truncate titles of events so they fit in one line

@@ -14,14 +14,17 @@
 
 """Request Handler for /main endpoint."""
 
-__author__ = 'alainv@google.com (Alain Vongsouvanh)'
+__author__ = 'jbyeung@gmail.com (Jeff Yeung)'
 
 
 import io
 import jinja2
 import logging
+import json
 import os
 import webapp2
+import time, threading
+from datetime import datetime, tzinfo, timedelta
 
 from google.appengine.api import memcache
 from google.appengine.api import urlfetch
@@ -32,13 +35,17 @@ from apiclient.http import MediaIoBaseUpload
 from apiclient.http import BatchHttpRequest
 from oauth2client.appengine import StorageByKeyName
 
+from apiclient.discovery import build
+from oauth2client.appengine import OAuth2Decorator
+
+
 from model import Credentials
 import util
 
+from gcal import auto_refresh, get_html_from_calendar, BUNDLE_TEMPLATE_URL, EVENT_TEMPLATE_URL
 
 jinja_environment = jinja2.Environment(
     loader=jinja2.FileSystemLoader(os.path.dirname(__file__)))
-
 
 class _BatchCallback(object):
   """Class used to track batch request responses."""
@@ -67,27 +74,21 @@ class MainHandler(webapp2.RequestHandler):
 
   def _render_template(self, message=None):
     """Render the main page template."""
+
+    userid, creds = util.load_session_credentials(self)
+
     template_values = {'userId': self.userid}
+
     if message:
       template_values['message'] = message
-    # self.mirror_service is initialized in util.auth_required.
-    try:
-      template_values['contact'] = self.mirror_service.contacts().get(
-        id='Python Quick Start').execute()
-    except errors.HttpError:
-      logging.info('Unable to find Python Quick Start contact.')
-
-    timeline_items = self.mirror_service.timeline().list(maxResults=3).execute()
-    template_values['timelineItems'] = timeline_items.get('items', [])
-
+    
+    # self.mirror_service is initialized in util.auth_required
     subscriptions = self.mirror_service.subscriptions().list().execute()
     for subscription in subscriptions.get('items', []):
       collection = subscription.get('collection')
       if collection == 'timeline':
         template_values['timelineSubscriptionExists'] = True
-      elif collection == 'locations':
-        template_values['locationSubscriptionExists'] = True
-
+    
     template = jinja_environment.get_template('templates/index.html')
     self.response.out.write(template.render(template_values))
 
@@ -105,13 +106,8 @@ class MainHandler(webapp2.RequestHandler):
     operation = self.request.get('operation')
     # Dict of operations to easily map keys to methods.
     operations = {
-        'insertSubscription': self._insert_subscription,
-        'deleteSubscription': self._delete_subscription,
-        'insertItem': self._insert_item,
-        'insertItemWithAction': self._insert_item_with_action,
-        'insertItemAllUsers': self._insert_item_all_users,
-        'insertContact': self._insert_contact,
-        'deleteContact': self._delete_contact
+        # 'refresh': self._refresh_list,
+        'send_to_glass': self._new_calendar,
     }
     if operation in operations:
       message = operations[operation]()
@@ -121,118 +117,54 @@ class MainHandler(webapp2.RequestHandler):
     memcache.set(key=self.userid, value=message, time=5)
     self.redirect('/')
 
-  def _insert_subscription(self):
-    """Subscribe the app."""
-    # self.userid is initialized in util.auth_required.
+
+  def _new_calendar(self):
+    userid, creds = util.load_session_credentials(self)
+    calendar_service = util.create_service("calendar", "v3", creds)
+    mirror_service = util.create_service('mirror', 'v1', creds)
+    
+    calendar_list = calendar_service.calendarList().list().execute()
+    for calendar in calendar_list['items']:
+      if 'primary' in calendar:
+        if calendar['primary']:
+          calendar_id = calendar['id'] # grab only primary calendar      
+          calendar_title = calendar['summary']
+    
+    #get events, only some of them
+    bundle_html, event_htmls = get_html_from_calendar(calendar_service, calendar_id, calendar_title)
+
     body = {
-        'collection': self.request.get('collection', 'timeline'),
-        'userToken': self.userid,
-        'callbackUrl': util.get_full_url(self, '/notify')
-    }
-    # self.mirror_service is initialized in util.auth_required.
-    self.mirror_service.subscriptions().insert(body=body).execute()
-    return 'Application is now subscribed to updates.'
+            'notification': {'level': 'DEFAULT'},
+            'title': calendar_title,  #stash calendar title for notify
+            'text': calendar_id,      #stash calendar id for notify
+            'html': bundle_html,
+            'htmlPages': event_htmls,  #array
+            'isBundleCover': True,
+            'menuItems': [
+                {
+                    'action': 'CUSTOM',
+                    'id': 'refresh',
+                    'values': [{
+                        'displayName': 'Refresh',
+                        'iconUrl': util.get_full_url(self, '/static/images/refresh3.png')}]
+                },
+                {'action': 'TOGGLE_PINNED'},
+                {'action': 'DELETE'}
+            ]
+        }
 
-  def _delete_subscription(self):
-    """Unsubscribe from notifications."""
-    collection = self.request.get('subscriptionId')
-    self.mirror_service.subscriptions().delete(id=collection).execute()
-    return 'Application has been unsubscribed.'
+    try:
+        result = mirror_service.timeline().insert(body=body).execute()
 
-  def _insert_item(self):
-    """Insert a timeline item."""
-    logging.info('Inserting timeline item')
-    body = {
-        'notification': {'level': 'DEFAULT'}
-    }
-    if self.request.get('html') == 'on':
-      body['html'] = [self.request.get('message')]
-    else:
-      body['text'] = self.request.get('message')
+        item_id = result['id']
+        auto_refresh(mirror_service, calendar_service, item_id, calendar_title, calendar_id, True)
+                
+    except errors.HttpError, error:
+        logging.info ('an error has occured %s ', error)
 
-    media_link = self.request.get('imageUrl')
-    if media_link:
-      if media_link.startswith('/'):
-        media_link = util.get_full_url(self, media_link)
-      resp = urlfetch.fetch(media_link, deadline=20)
-      media = MediaIoBaseUpload(
-          io.BytesIO(resp.content), mimetype='image/jpeg', resumable=True)
-    else:
-      media = None
-
-    # self.mirror_service is initialized in util.auth_required.
-    self.mirror_service.timeline().insert(body=body, media_body=media).execute()
-    return  'A timeline item has been inserted.'
-
-  def _insert_item_with_action(self):
-    """Insert a timeline item user can reply to."""
-    logging.info('Inserting timeline item')
-    body = {
-        'creator': {
-            'displayName': 'Python Starter Project',
-            'id': 'PYTHON_STARTER_PROJECT'
-        },
-        'text': 'Tell me what you had for lunch :)',
-        'notification': {'level': 'DEFAULT'},
-        'menuItems': [{'action': 'REPLY'}]
-    }
-    # self.mirror_service is initialized in util.auth_required.
-    self.mirror_service.timeline().insert(body=body).execute()
-    return 'A timeline item with action has been inserted.'
-
-  def _insert_item_all_users(self):
-    """Insert a timeline item to all authorized users."""
-    logging.info('Inserting timeline item to all users')
-    users = Credentials.all()
-    total_users = users.count()
-
-    if total_users > 10:
-      return 'Total user count is %d. Aborting broadcast to save your quota' % (
-          total_users)
-    body = {
-        'text': 'Hello Everyone!',
-        'notification': {'level': 'DEFAULT'}
-    }
-
-    batch_responses = _BatchCallback()
-    batch = BatchHttpRequest(callback=batch_responses.callback)
-    for user in users:
-      creds = StorageByKeyName(
-          Credentials, user.key().name(), 'credentials').get()
-      mirror_service = util.create_service('mirror', 'v1', creds)
-      batch.add(
-          mirror_service.timeline().insert(body=body),
-          request_id=user.key().name())
-
-    batch.execute(httplib2.Http())
-    return 'Successfully sent cards to %d users (%d failed).' % (
-        batch_responses.success, batch_responses.failure)
-
-  def _insert_contact(self):
-    """Insert a new Contact."""
-    logging.info('Inserting contact')
-    name = self.request.get('name')
-    image_url = self.request.get('imageUrl')
-    if not name or not image_url:
-      return 'Must specify imageUrl and name to insert contact'
-    else:
-      if image_url.startswith('/'):
-        image_url = util.get_full_url(self, image_url)
-      body = {
-          'id': name,
-          'displayName': name,
-          'imageUrls': [image_url]
-      }
-      # self.mirror_service is initialized in util.auth_required.
-      self.mirror_service.contacts().insert(body=body).execute()
-      return 'Inserted contact: ' + name
-
-  def _delete_contact(self):
-    """Delete a Contact."""
-    # self.mirror_service is initialized in util.auth_required.
-    self.mirror_service.contacts().delete(
-        id=self.request.get('id')).execute()
-    return 'Contact has been deleted.'
+    logging.info("new calendar insertion complete!")
+    return "Calendar named \'" + calendar_title + "\'' has been added to timeline."  
+  
 
 
 MAIN_ROUTES = [

@@ -1,0 +1,26 @@
+<article>
+	<section>
+		<table class="align-justify">       
+			<tbody class="text-x-small">
+				{% for event in events %}         
+					<tr>           
+					<td>{{event.startDate}}
+					{% if event.startTime %}
+					:
+					{{event.startTime}}
+					{% endif %}
+					{% if event.endTime %}
+					-{{event.endTime}}
+					{% endif %}
+					</td>
+					<td>{{event.title}}</td>
+					</tr>
+				{% endfor %}        
+			</tbody>     
+		</table>
+  	</section>
+	<footer>
+		<img src = "https://glassgcal.appspot.com/static/images/calendar.png" class="left">
+		<p class="text-x-small">{{calendar_title}}</p>
+	</footer>
+</article>

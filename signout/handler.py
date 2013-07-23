@@ -19,6 +19,8 @@ __author__ = 'alainv@google.com (Alain Vongsouvanh)'
 
 import webapp2
 
+
+from google.appengine.ext import db
 from google.appengine.api import urlfetch
 
 from model import Credentials
@@ -39,6 +41,7 @@ class SignoutHandler(webapp2.RequestHandler):
     credentials_entity = Credentials.get_by_key_name(self.userid)
     if credentials_entity:
       credentials_entity.delete()
+      
     self.redirect('/')
 
 

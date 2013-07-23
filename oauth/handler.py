@@ -19,19 +19,22 @@ __author__ = 'alainv@google.com (Alain Vongsouvanh)'
 
 import logging
 import webapp2
+
 from urlparse import urlparse
 
 from oauth2client.appengine import StorageByKeyName
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.client import FlowExchangeError
+from apiclient.discovery import build
 
 from model import Credentials
 import util
 
 
 SCOPES = ('https://www.googleapis.com/auth/glass.timeline '
-          'https://www.googleapis.com/auth/glass.location '
-          'https://www.googleapis.com/auth/userinfo.profile')
+          'https://www.googleapis.com/auth/userinfo.profile '
+          'https://www.googleapis.com/auth/calendar')
+
 
 
 class OAuthBaseRequestHandler(webapp2.RequestHandler):
@@ -96,16 +99,18 @@ class OAuthCodeExchangeHandler(OAuthBaseRequestHandler):
     self.redirect('/')
 
   def _perform_post_auth_tasks(self, userid, creds):
-    """Perform commong post authorization tasks.
+    """Perform common post authorization tasks.
 
-    Subscribes the service to notifications for the user and add one sharing
-    contact.
+    Subscribes the service to notifications for the user.
+    Creates tasks service and oauths it in.
 
     Args:
       userid: ID of the current user.
       creds: Credentials for the current user.
     """
     mirror_service = util.create_service('mirror', 'v1', creds)
+    calendar_service = util.create_service("calendar", "v3", creds)
+
     hostname = util.get_full_url(self, '')
 
     # Only do the post auth tasks when deployed.
@@ -118,25 +123,6 @@ class OAuthCodeExchangeHandler(OAuthBaseRequestHandler):
           'callbackUrl': util.get_full_url(self, '/notify')
       }
       mirror_service.subscriptions().insert(body=subscription_body).execute()
-
-      # Insert a sharing contact.
-      contact_body = {
-          'id': 'Python Quick Start',
-          'displayName': 'Python Quick Start',
-          'imageUrls': [util.get_full_url(self, '/static/images/python.png')]
-      }
-      mirror_service.contacts().insert(body=contact_body).execute()
-    else:
-      logging.info('Post auth tasks are not supported on staging.')
-
-    # Insert welcome message.
-    timeline_item_body = {
-        'text': 'Welcome to the Python Quick Start',
-        'notification': {
-            'level': 'DEFAULT'
-        }
-    }
-    mirror_service.timeline().insert(body=timeline_item_body).execute()
 
 
 OAUTH_ROUTES = [

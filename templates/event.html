@@ -1,0 +1,24 @@
+<article>
+	<section>
+		<table class="align-justify">       
+			<tbody>        
+				<tr>
+				<td><p class="text-auto-size">{{event.title}}</p></td>
+				<td><p class="text-auto-size">{{event.location}}</p></td>
+				</tr>
+			</tbody>     
+		</table>
+		<p class="text-x-small">{{event.description}}</p>
+  	</section>
+	<footer>
+		<img src ="https://glassgcal.appspot.com/static/images/calendar.png" class="left">
+		<p class="text-x-small">{{event.startDate}}
+					{% if event.startTime %}
+					: {{event.startTime}}
+					{% endif %}
+					{% if event.endTime %}
+					- {{event.endTime}}
+					{% endif %}
+		</p>
+	</footer>
+</article>

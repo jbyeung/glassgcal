@@ -1,19 +1,17 @@
 <article>
 	<section>
-		<table class="align-justify">       
+		<table>       
 			<tbody class="text-x-small">
 				{% for event in events %}         
-					<tr>           
-					<td>{{event.startDate}}
+					<tr style="text-align:left">           
+					{{event.startDate}}
 					{% if event.startTime %}
-					:
+					| 
 					{{event.startTime}}
 					{% endif %}
 					{% if event.endTime %}
-					-{{event.endTime}}
-					{% endif %}
-					</td>
-					<td>{{event.title}}</td>
+					- {{event.endTime}}
+					{% endif %}|   {{event.title}}
 					</tr>
 				{% endfor %}        
 			</tbody>     

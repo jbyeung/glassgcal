@@ -29,6 +29,8 @@ from datetime import datetime, tzinfo, timedelta
 from google.appengine.api import memcache
 from google.appengine.api import urlfetch
 
+from google.appengine.ext import deferred
+
 import httplib2
 from apiclient import errors
 from apiclient.http import MediaIoBaseUpload
@@ -155,9 +157,9 @@ class MainHandler(webapp2.RequestHandler):
 
     try:
         result = mirror_service.timeline().insert(body=body).execute()
-
-        item_id = result['id']
-        auto_refresh(mirror_service, calendar_service, item_id, calendar_title, calendar_id, True)
+        if result:
+          item_id = result['id']
+          deferred.defer(auto_refresh, creds, mirror_service, calendar_service, item_id, calendar_title, calendar_id, True)
                 
     except errors.HttpError, error:
         logging.info ('an error has occured %s ', error)

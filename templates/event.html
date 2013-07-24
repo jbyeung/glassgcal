@@ -12,10 +12,7 @@
   	</section>
 	<footer>
 		<img src ="https://glassgcal.appspot.com/static/images/calendar.png" class="left">
-		<p class="text-x-small">{{event.startDate}}
-					{% if event.startTime %}
-					: {{event.startTime}}
-					{% endif %}
+		<p class="text-x-small">{{event.startDate}}{% if event.startTime %}:  {{event.startTime}}{% endif %}
 					{% if event.endTime %}
 					- {{event.endTime}}
 					{% endif %}

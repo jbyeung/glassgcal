@@ -8,9 +8,5 @@ Google Calendar interface for Google Glass
 
 to do:
 
-auto-refresh doesn't work on GAE - move app to heroku
-
-format cards
-	add colors for events based on calendar color settings
-	format timestamps
-	truncate titles of events so they fit in one line
+add colors and sectional colors
+consider redoing content - after feedback

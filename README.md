@@ -5,8 +5,10 @@ Google Calendar interface for Google Glass
 - click the bundle to show details on the next 5 events
 
 
+If you have input regarding design or bugs you find, please let me know.
 
-to do:
 
-add colors and sectional colors
-consider redoing content - after feedback
+www.jeffreyyeung.com
+
+
+Copyright 2013 Jeffrey Yeung jbyeung@gmail.com

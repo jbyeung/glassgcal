@@ -68,7 +68,7 @@ def get_html_from_calendar(calendar_service, calendar_id, calendar_title):
     my_events = []
     event_htmls = []
     template_values = {}
-    MAX_EVENTS = 5
+    MAX_EVENTS = 10
     
     logging.info('beginning to grab events')
 
@@ -95,12 +95,13 @@ def get_html_from_calendar(calendar_service, calendar_id, calendar_title):
 	      
 	      if 'start' in event: 
 	        if 'dateTime' in event['start']:
-	          e['startDate'] = event['start']['dateTime'][0:9]
+	          e['startDate'] = event['start']['dateTime'][0:10]
 	          e['startTime'] = event['start']['dateTime'][11:16]
 
 	          d = datetime.strptime(e['startTime'], '%H:%M')
 	          e['startTime'] = d.strftime('%I:%M')
 	        else:
+	          
 	          e['startDate'] = event['start']['date']
 	          e['startTime'] = ''   
 	        d = datetime.strptime(e['startDate'], '%Y-%m-%d')
@@ -108,7 +109,7 @@ def get_html_from_calendar(calendar_service, calendar_id, calendar_title):
 	        
 	      if 'end' in event: 
 	        if 'dateTime' in event['end']:
-	          e['endDate'] = event['end']['dateTime'][0:9]
+	          e['endDate'] = event['end']['dateTime'][0:10]
 	          e['endTime'] = event['end']['dateTime'][11:16]
 	          d = datetime.strptime(e['endTime'], '%H:%M')
 	          e['endTime'] = d.strftime('%I:%M%p')

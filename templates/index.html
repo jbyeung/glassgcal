@@ -57,17 +57,35 @@ limitations under the License.
 <div style="clear:both;margin-top:6%;"></div>
 
 <div class="container">
-  <div class="span4">
-    	<h2>Readme</h2>
-      	</p>
+    <div class="span4">
+      <h2>Readme</h2>
+        <p align="justify">
+        <em>Version 1.0</em> 
+        <br><br>
+        1.  Just hit send to calendar to send a bundled item to your timeline.  You can pin it to the left of your home screen for easy access.<br>
+        2.  Click on the bundle to view details of your upcoming 10 events, or just view the ones that fit on the main screen.<br>
+        3.  The cards should refresh every hour from the time you added it, or you can manually refresh the card.
+        <br><br>
+        Currently it only pulls from your primary calendar, whatever you have set to primary.  I do not feel the need to expand to others as this would defeat the purpose of quick information from Glass.
+        <br>
+        <br>
+        <a href="http://jeffreyyeung.com/blog/tech/glass/google-calendar-for-glass">Link to my blog post</a>
+        </p>
       <br>
+    </div>
+    <div class="span4">
       <h2>Contact</h2>
-      <p> Send me bugs, feedback, feature requests at: <i>jbyeung (at) gmail (dot) com</i></p>
-      
+      <p align="justify"> 
+      Send me bugs, feedback, feature requests at: <i>jbyeung (at) gmail (dot) com</i><br><br>
+      <em> Future plans: formatting the cards to look better, adding colored sections based on calendar/event colors. </em> 
+      </p>
+      <br>
+      <p align="justify"> <b>Known bugs:</b> Auto-refresh may sometimse not trigger.  Let me know if this happens.  I am currently playing with the max events value, as it seems to slow down the cards.  </p>
+    </div>
+
     {% if message %}
     <span class="label label-warning">Message: {{ message }}</span>
     {% endif %}
-  </div>
   	<div class="span4">
       
       <form action="/" method="post">
@@ -76,8 +94,23 @@ limitations under the License.
           Send calendar to Glass
         </button>
       </form>
-	</div>
+	   </div>
 </div>        
+
+<div class="container">
+  <div class="row">
+      <h2>Screenshots</h2>
+      <img src="https://glassgcal.appspot.com/static/images/screen1.png" alt="Main Calendar Screen">
+      <br>
+      <img src="https://glassgcal.appspot.com/static/images/screen2.png" alt="Event details">
+      <br>
+      <img src="https://glassgcal.appspot.com/static/images/screen3.png" alt="Location and Refresh Action"> 
+      
+    </div>
+
+</div>
+
+
 
 </body>
 </html>

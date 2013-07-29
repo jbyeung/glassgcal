@@ -7,6 +7,7 @@ Google Calendar interface for Google Glass
 
 If you have input regarding design or bugs you find, please let me know.
 
+Google App engine url: https://glassgcal.appspot.com
 
 www.jeffreyyeung.com
 
